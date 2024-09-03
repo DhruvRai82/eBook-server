@@ -76,13 +76,44 @@ async function run() {
       res.send(result);
     });
 
-    // Get a single book data
+   // Get a single book data
     app.get("/book/:id", async (req, res) => {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
       const result = await bookCollections.findOne(filter);
       res.send(result);
     });
+  //  Get a single book data
+// app.get("/book/:id", async (req, res) => {
+//   const id = req.params.id;
+//   const filter = { _id: new ObjectId(id) };
+//   const result = await bookCollections.findOne(filter);
+//   if (result) {
+//     res.send(result);
+//   } else {
+//     res.status(404).send({ message: "Book not found" });
+//   }
+// });
+
+ // Get the distinct categories and their counts
+ app.get("/categories-count", async (req, res) => {
+  const result = await bookCollections.aggregate([
+    {
+      $group: {
+        _id: "$category",
+        count: { $sum: 1 }
+      }
+    },
+    {
+      $project: {
+        category: "$_id",
+        count: 1,
+        _id: 0
+      }
+    }
+  ]).toArray();
+  res.send(result);
+});
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
