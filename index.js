@@ -115,6 +115,35 @@ async function run() {
   res.send(result);
 });
 
+// Access the Users collection
+const userCollection = client.db("BookInventory").collection("User");
+
+// Register a new user (POST method)
+app.post("/register-user", async (req, res) => {
+    const { username, email, password } = req.body;
+    
+    // Check if the user already exists
+    const existingUser = await userCollection.findOne({ email });
+    if (existingUser) {
+        return res.status(400).send({ message: "User already exists" });
+    }
+
+    // Hash the password before storing it (use a hashing library like bcrypt)
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const newUser = {
+        username,
+        email,
+        password: hashedPassword,
+        createdAt: new Date()
+    };
+
+    const result = await userCollection.insertOne(newUser);
+    res.status(201).send(result);
+});
+
+
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
