@@ -2,6 +2,8 @@ const express = require('express');
 const app = express();
 const port = process.env.PORT || 5000;
 const cors = require('cors');
+const bcrypt = require('bcrypt'); // Import bcrypt
+
 
 // Middleware
 app.use(cors());
@@ -44,16 +46,53 @@ async function run() {
       res.send(result);
     });
 
-    // Get all books & find by category from the database
+// //    Get all books & find by category from the database
+//     app.get("/all-books", async (req, res) => {
+//       let query = {};
+//       if (req.query?.category) {
+//         query = { category: req.query.category };
+//       }
+//       const result = await bookCollections.find(query).toArray();
+//       res.send(result);
+//     });
+//     app.get("/all-books", async (req, res) => {
+//       const titleQuery = req.query.title || '';
+//       const query = titleQuery ? { bookTitle: { $regex: titleQuery, $options: 'i' } } : {}; // Case-insensitive regex on bookTitle
+//       const result = await bookCollections.find(query).toArray();
+//       res.json(result); // Ensure you send the response as JSON
+//     });
+    // Get all books & find by category or title from the database
     app.get("/all-books", async (req, res) => {
+      console.log('Received request for /all-books with query:', req.query);
+      
+      const titleQuery = req.query.title || '';
+      const categoryQuery = req.query.category || '';
+      
       let query = {};
-      if (req.query?.category) {
-        query = { category: req.query.category };
+    
+      if (titleQuery && categoryQuery) {
+        query = {
+          bookTitle: { $regex: titleQuery, $options: 'i' },
+          category: categoryQuery
+        };
+      } else if (titleQuery) {
+        query = { bookTitle: { $regex: titleQuery, $options: 'i' } };
+      } else if (categoryQuery) {
+        query = { category: categoryQuery };
       }
-      const result = await bookCollections.find(query).toArray();
-      res.send(result);
+    
+      try {
+        const result = await bookCollections.find(query).toArray();
+        console.log('Books found:', result);
+        res.json(result);
+      } catch (error) {
+        console.error('Error fetching books:', error);
+        res.status(500).send({ message: 'Error fetching books', error });
+      }
     });
+    
 
+    
     // Update a book method
     app.patch("/book/:id", async (req, res) => {
       const id = req.params.id;
@@ -141,7 +180,32 @@ app.post("/register-user", async (req, res) => {
     const result = await userCollection.insertOne(newUser);
     res.status(201).send(result);
 });
+// Login route
+app.post("/login-user", async (req, res) => {
+  const { email, password } = req.body;
 
+  // Check if the user exists
+  const existingUser = await userCollection.findOne({ email });
+  if (!existingUser) {
+      return res.status(404).send({ message: "User not found" });
+  }
+
+  // Compare the provided password with the stored hashed password
+  const isPasswordValid = await bcrypt.compare(password, existingUser.password);
+  if (!isPasswordValid) {
+      return res.status(401).send({ message: "Invalid credentials" });
+  }
+
+  // If login is successful, send back user info
+  res.status(200).send({
+      message: "Login successful",
+      user: {
+          id: existingUser._id,
+          email: existingUser.email,
+          username: existingUser.username
+      }
+  });
+});
 
 
     // Send a ping to confirm a successful connection
