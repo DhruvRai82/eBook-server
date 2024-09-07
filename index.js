@@ -157,29 +157,81 @@ async function run() {
 // Access the Users collection
 const userCollection = client.db("BookInventory").collection("User");
 
-// Register a new user (POST method)
-app.post("/register-user", async (req, res) => {
-    const { username, email, password } = req.body;
+// // Register a new user (POST method)
+// app.post("/register-user", async (req, res) => {
+//     const { username, email, password } = req.body;
     
-    // Check if the user already exists
-    const existingUser = await userCollection.findOne({ email });
-    if (existingUser) {
-        return res.status(400).send({ message: "User already exists" });
-    }
+//     // Check if the user already exists
+//     const existingUser = await userCollection.findOne({ email });
+//     if (existingUser) {
+//         return res.status(400).send({ message: "User already exists" });
+//     }
 
-    // Hash the password before storing it (use a hashing library like bcrypt)
-    const hashedPassword = await bcrypt.hash(password, 10);
+//     // Hash the password before storing it (use a hashing library like bcrypt)
+//     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const newUser = {
-        username,
-        email,
-        password: hashedPassword,
-        createdAt: new Date()
-    };
+//     const newUser = {
+//         username,
+//         email,
+//         password: hashedPassword,
+//         createdAt: new Date()
+//     };
 
-    const result = await userCollection.insertOne(newUser);
-    res.status(201).send(result);
+//     const result = await userCollection.insertOne(newUser);
+//     res.status(201).send(result);
+// });
+app.post("/register-user", async (req, res) => {
+  const { username, email, password } = req.body;
+  
+  // Check if the user already exists
+  const existingUser = await userCollection.findOne({ email });
+  if (existingUser) {
+      return res.status(400).send({ message: "User already exists" });
+  }
+
+  // Hash the password before storing it
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  const newUser = {
+      username,
+      email,
+      password: hashedPassword,
+      role: "user", // Default role is "user"
+      favorite: [],  // Initialize empty favorites array
+      recent: [],    // Initialize empty recent array
+      createdAt: new Date()
+  };
+
+  const result = await userCollection.insertOne(newUser);
+  res.status(201).send(result);
 });
+// // Login route
+// app.post("/login-user", async (req, res) => {
+//   const { email, password } = req.body;
+
+//   // Check if the user exists
+//   const existingUser = await userCollection.findOne({ email });
+//   if (!existingUser) {
+//       return res.status(404).send({ message: "User not found" });
+//   }
+
+//   // Compare the provided password with the stored hashed password
+//   const isPasswordValid = await bcrypt.compare(password, existingUser.password);
+//   if (!isPasswordValid) {
+//       return res.status(401).send({ message: "Invalid credentials" });
+//   }
+
+//   // If login is successful, send back user info
+//   res.status(200).send({
+//       message: "Login successful",
+//       user: {
+//           id: existingUser._id,
+//           email: existingUser.email,
+//           username: existingUser.username
+//       }
+//   });
+// });
+
 // Login route
 app.post("/login-user", async (req, res) => {
   const { email, password } = req.body;
@@ -196,13 +248,14 @@ app.post("/login-user", async (req, res) => {
       return res.status(401).send({ message: "Invalid credentials" });
   }
 
-  // If login is successful, send back user info
+  // If login is successful, send back user info with role
   res.status(200).send({
       message: "Login successful",
       user: {
           id: existingUser._id,
           email: existingUser.email,
-          username: existingUser.username
+          username: existingUser.username,
+          role: existingUser.role  // Include role in response
       }
   });
 });
